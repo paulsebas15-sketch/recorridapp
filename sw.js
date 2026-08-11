@@ -1,8 +1,11 @@
-const CACHE = 'recorridapp-v1';
+const CACHE = 'recorridapp-v2';
 const ASSETS = [
   './index.html',
   './manifest.json',
-  'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/tabler-icons.min.css',
+  './icon.svg',
+  './tabler-icons.css',
+  './fonts/tabler-icons.woff2',
+  './fonts/tabler-icons.woff',
 ];
 
 self.addEventListener('install', e => {
