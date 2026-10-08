@@ -1134,6 +1134,11 @@ function rRecBody(){
     <div class="zone-extras">
       <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px">${ico('ti-message-circle')} Observaciones adicionales</div>
       <textarea rows="2" placeholder="Comentarios generales, hallazgos fuera de parámetros..." data-zone-comment style="margin-bottom:8px">${esc(ze.comentario||'')}</textarea>
+      <div class="lbl">Informe(s) donde aparece</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        ${Object.entries(RESP).map(([key,cfg])=>`<button type="button" class="rbtn ${cfg.cls} ${(ze.responsables||[]).includes(key)?'on':''}" data-extra-resp="${key}">${ico(cfg.icon)}<br>${key}</button>`).join('')}
+      </div>
+      ${(ze.responsables||[]).length===0&&((ze.comentario||'').trim()||(ze.fotos||[]).length)?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Sin elegir: saldrá en los 4 informes.</div>`:''}
       <div class="lbl">Fotos adicionales</div>
       ${photoGalleryHtml(ze.fotos||[],'zone:'+zid)}
     </div>
@@ -1192,6 +1197,14 @@ function bindBodyEvents(){
       const d=S.recorrido.zoneData[S.selZone][iid];
       if(d&&d.novedades[+ni])d.novedades[+ni].responsable=key;
       rRecBody();return;
+    }
+    // Responsable(s) de las observaciones adicionales de la zona (multi-selección)
+    const exResp=e.target.closest('[data-extra-resp]');
+    if(exResp){
+      const ze=S.recorrido.zoneExtras[S.selZone];
+      const k=exResp.dataset.extraResp,cur=ze.responsables||[];
+      ze.responsables=cur.includes(k)?cur.filter(x=>x!==k):[...cur,k];
+      rRecBody();autoSaveRec();return;
     }
     // Agregar novedad
     const addNov=e.target.closest('[data-add-nov]');
@@ -1543,8 +1556,16 @@ function repContent(novsByZone,filtZones,rec,tabKey){
     // Zona "recorrida" = al menos un ítem con estado marcado. Si no se ha tocado
     // nada de la zona, se omite por completo del informe (solo interesa lo recorrido).
     const visited=items.some(it=>{const d=zd[it.id];return d&&d.status;});
-    if(!zEntry&&!visited)return;
-    if(zEntry&&zEntry.items.length>0){
+    // Observaciones adicionales de la zona dirigidas a este responsable.
+    // Sin responsables asignados (registros viejos) → se muestran en los 4 informes.
+    const ze=(rec.zoneExtras||{})[zone.id]||{};
+    const zeResp=ze.responsables||[];
+    const hasObs=(ze.comentario||'').trim()||(ze.fotos||[]).length>0;
+    const obsForTab=hasObs&&(zeResp.length===0||zeResp.includes(tabKey||S.activeTab));
+    if(!zEntry&&!visited&&!obsForTab)return;
+    if(!zEntry&&!visited){
+      // Zona sin ítems marcados pero con observaciones: solo se muestra el bloque de observaciones
+    } else if(zEntry&&zEntry.items.length>0){
       lines.push(`
         <div class="card" style="margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -1570,6 +1591,17 @@ function repContent(novsByZone,filtZones,rec,tabKey){
           <span style="color:#3fb950;font-size:16px">✓</span>
           <span style="font-size:13px;color:var(--muted);flex:1">${esc(zone.label)}</span>
           <span style="font-size:11px;color:#3fb950;font-weight:600">Todo OK · Sin novedades</span>
+        </div>`);
+    }
+    if(obsForTab){
+      lines.push(`
+        <div class="card" style="margin-bottom:12px;border-color:rgba(77,158,247,.45)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="background:#4d9ef7;color:white;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">Observaciones</span>
+            <span style="font-weight:700;font-size:14px">${esc(zone.label)}</span>
+          </div>
+          ${(ze.comentario||'').trim()?`<div style="font-size:13px;background:var(--bg-input);padding:8px 10px;border-radius:6px;margin-bottom:8px;white-space:pre-wrap">${esc(ze.comentario)}</div>`:''}
+          ${(ze.fotos||[]).length>0?`<div class="ph-gallery">${ze.fotos.map(ph=>`<div class="ph-item"><img src="${ph.data}" alt="foto">${ph.caption?`<div style="font-size:11px;color:var(--muted);margin-top:3px">${esc(ph.caption)}</div>`:''}</div>`).join('')}</div>`:''}
         </div>`);
     }
   });

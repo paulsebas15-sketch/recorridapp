@@ -1,4 +1,4 @@
-const CACHE = 'recorridapp-v2';
+const CACHE = 'recorridapp-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
